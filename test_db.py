@@ -212,6 +212,8 @@ def process_json_to_duckdb(
 if __name__ == "__main__":
   base_path = "/workspace/host_folder/data_analysis/proc_osp/"
   json_file = base_path + "aes_le6.json"
+  # base_path = "./"
+  # json_file = "/workspace/Open-Sora-Plan/mydata/sub_cluster_hier2_5_6_7.json"
   db_file = base_path + "pre_proc.duckdb"
   log_file = base_path + "error_video.log"
   ncpus = 110  # Adjust the number of CPUs as needed

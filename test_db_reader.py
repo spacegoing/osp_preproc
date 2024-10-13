@@ -55,7 +55,7 @@ class DuckDBReader:
 
 if __name__ == "__main__":
   # Initialize the reader
-  db_file = "/workspace/host_folder/data_analysis/proc_osp/pre_proc.duckdb"
+  db_file = "/workspace/host_folder/data_analysis/hdf5_proc/pre_proc.duckdb"
   reader = DuckDBReader(db_file)
 
   # Get a specific row by its row number
