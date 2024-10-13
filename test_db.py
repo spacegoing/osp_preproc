@@ -164,16 +164,10 @@ def process_json_to_duckdb(
     os.remove(log_file)
 
   total_entries = len(data)
-  chunk_size = total_entries // ncpus
-  remainder = total_entries % ncpus
-
   # Create a list of chunks
-  chunks = [
-    (data[i : i + chunk_size])
-    for i in range(0, total_entries, chunk_size)
-  ]
-  if remainder > 0:
-    chunks[-1] += data[-remainder:]
+  chunk_size = (total_entries + ncpus - 1) // ncpus  # Properly handle remainder
+  # Create a list of chunks
+  chunks = [data[i:i + chunk_size] for i in range(0, total_entries, chunk_size)]
 
   # Use multiprocessing to process chunks in parallel
   with Pool(processes=ncpus) as pool:
