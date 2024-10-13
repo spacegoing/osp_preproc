@@ -202,7 +202,7 @@ def process_json_to_duckdb(
 
   # Final step: Sort the DuckDB table by `bucket_frame_field`, `aspect_ratio`, and `filename`
   bucket_frame_field = (
-    f"cut_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
+    f"bucket_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
   )
   conn = duckdb.connect(db_file)
 
