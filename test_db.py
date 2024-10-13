@@ -9,6 +9,8 @@ import os
 # Initialize Decord to use CPU
 decord.bridge.set_bridge("native")
 
+POP_KEYS = ["resolution"]
+
 
 # Find closest `y` based on the provided nframes
 def find_closest_y(x, vae_stride_t=4, model_ds_t=4):
@@ -68,6 +70,15 @@ def process_chunk(
   results = []
 
   for entry in data_chunk:
+    for k in POP_KEYS:
+      entry.pop(k)
+    for k, v in entry.items():
+      try:
+        infer_duckdb_type(v)
+      except ValueError:
+        raise ValueError(
+          f"key f{k} has type {type(v)} is not supported, add it to POP_KEYS list"
+        )
     video_path = entry["path"]
     filename = video_path.split("/")[-1]
 
@@ -165,9 +176,14 @@ def process_json_to_duckdb(
 
   total_entries = len(data)
   # Create a list of chunks
-  chunk_size = (total_entries + ncpus - 1) // ncpus  # Properly handle remainder
+  chunk_size = (
+    total_entries + ncpus - 1
+  ) // ncpus  # Properly handle remainder
   # Create a list of chunks
-  chunks = [data[i:i + chunk_size] for i in range(0, total_entries, chunk_size)]
+  chunks = [
+    data[i : i + chunk_size]
+    for i in range(0, total_entries, chunk_size)
+  ]
 
   # Use multiprocessing to process chunks in parallel
   with Pool(processes=ncpus) as pool:
