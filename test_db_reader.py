@@ -31,10 +31,10 @@ class DuckDBReader:
     Retrieve a specific row by its row number.
     Returns a dictionary corresponding to the row.
     """
-    query = "SELECT * FROM sorted_videos WHERE row_no = ?;"
+    query = f"SELECT * FROM {self.table_name} WHERE row_no = ?;"
     result = self.conn.execute(query, [row_no]).fetchone()
     columns = self.conn.execute(
-      "PRAGMA table_info('sorted_videos')"
+      f"PRAGMA table_info('{self.table_name}')"
     ).fetchall()
 
     # Extract column names
