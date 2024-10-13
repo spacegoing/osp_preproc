@@ -85,7 +85,7 @@ class DuckDBReader:
     if not result:
       return None
 
-    columns = self._get_column_names()
+    columns = self.get_column_names()
     return [dict(zip(columns, row)) for row in result]
 
   def __len__(self):
