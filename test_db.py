@@ -35,7 +35,7 @@ def infer_duckdb_type(value):
     return "INTEGER"
   elif isinstance(value, list):
     if all(isinstance(item, str) for item in value):
-      return "VARCHAR[]" # 'cap' is list of strings [caption1, caption2, etc]
+      return "VARCHAR[]"  # 'cap' is list of strings [caption1, caption2, etc]
     else:
       raise ValueError(
         f"Unsupported list data type in DuckDB for: {value}"
@@ -92,22 +92,22 @@ def process_chunk(
     closest_y = find_closest_y(nframes, vae_stride_t, model_ds_t)
 
     # Construct the field name dynamically
-    cut_frame_field = (
-      f"cut_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
+    bucket_frame_field = (
+      f"bucket_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
     )
 
     # Collect processed information
     processed_entry = {
+      **entry,  # Copy all keys from the original entry
       "path": video_path,
       "filename": filename,
-      "cap": entry["cap"], # list of strings
-      "resolution_width": resolution[0],
-      "resolution_height": resolution[1],
+      "nframes": nframes,
       "fps": fps,
       "duration": duration,
-      "nframes": nframes,
+      "resolution_width": resolution[0],
+      "resolution_height": resolution[1],
       "aspect_ratio": aspect_ratio,
-      cut_frame_field: closest_y,
+      bucket_frame_field: closest_y,
     }
 
     results.append(processed_entry)
@@ -190,8 +190,8 @@ def process_json_to_duckdb(
     if results:
       write_results_to_duckdb(results, db_file)
 
-  # Final step: Sort the DuckDB table by `cut_frame_field`, `aspect_ratio`, and `filename`
-  cut_frame_field = (
+  # Final step: Sort the DuckDB table by `bucket_frame_field`, `aspect_ratio`, and `filename`
+  bucket_frame_field = (
     f"cut_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
   )
   conn = duckdb.connect(db_file)
@@ -199,7 +199,7 @@ def process_json_to_duckdb(
   # Create a sorted table and add row numbers
   conn.execute(f"""
       CREATE TABLE sorted_videos AS
-      SELECT *, ROW_NUMBER() OVER (ORDER BY {cut_frame_field}, aspect_ratio, filename) AS row_no
+      SELECT *, ROW_NUMBER() OVER (ORDER BY {bucket_frame_field}, aspect_ratio, filename) AS row_no
       FROM videos;
   """)
 
