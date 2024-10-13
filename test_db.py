@@ -1,4 +1,3 @@
-import json
 import multiprocessing
 from multiprocessing import Pool
 import decord
@@ -21,6 +20,29 @@ def find_closest_y(x, vae_stride_t=4, model_ds_t=4):
     y -= remainder * vae_stride_t
 
   return y
+
+
+def infer_duckdb_type(value):
+  """
+  Infers the DuckDB type based on the Python type of the value.
+  """
+  if isinstance(value, str):
+    return "VARCHAR"
+  elif isinstance(value, float):
+    return "DOUBLE"
+  elif isinstance(value, int):
+    return "INTEGER"
+  elif isinstance(value, list):
+    if all(isinstance(item, str) for item in value):
+      return "VARCHAR[]" # 'cap' is list of strings [caption1, caption2, etc]
+    else:
+      raise ValueError(
+        f"Unsupported list data type in DuckDB for: {value}"
+      )
+  else:
+    raise ValueError(
+      f"Unsupported data type: {type(value)} for value {value}"
+    )
 
 
 # %% Define function to extract video information
@@ -77,7 +99,7 @@ def process_chunk(
     processed_entry = {
       "path": video_path,
       "filename": filename,
-      "cap": json.dumps(entry["cap"]),
+      "cap": entry["cap"], # list of strings
       "resolution_width": resolution[0],
       "resolution_height": resolution[1],
       "fps": fps,
@@ -92,7 +114,6 @@ def process_chunk(
   return results
 
 
-# Function to write the processed chunk to DuckDB
 def write_results_to_duckdb(results, db_file):
   conn = duckdb.connect(db_file)
 
@@ -102,10 +123,17 @@ def write_results_to_duckdb(results, db_file):
   )  # Extract the field names dynamically from the first result
   field_values = [tuple(entry.values()) for entry in results]
 
+  # Infer the types based on the first entry's values
+  first_entry = results[0]
+  field_types = [
+    f"{field} {infer_duckdb_type(first_entry[field])}"
+    for field in field_names
+  ]
+
   # Create table if it doesn't exist
   conn.execute(f"""
         CREATE TABLE IF NOT EXISTS videos (
-            {', '.join([f'{field} VARCHAR' if field == 'path' or field == 'filename' or field.startswith('cut_frame') else 'DOUBLE' for field in field_names])}
+            {', '.join(field_types)}
         );
     """)
 
@@ -162,7 +190,9 @@ def process_json_to_duckdb(
       write_results_to_duckdb(results, db_file)
 
   # Final step: Sort the DuckDB table by `cut_frame_field`, `aspect_ratio`, and `filename`
-  cut_frame_field = f"cut_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
+  cut_frame_field = (
+    f"cut_frame_vst_{vae_stride_t}_mst_{model_ds_t}"
+  )
   conn = duckdb.connect(db_file)
 
   # Create a sorted table and add row numbers
